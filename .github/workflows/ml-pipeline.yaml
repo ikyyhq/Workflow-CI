@@ -1,0 +1,70 @@
+name: MLflow CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Tambahan kecil agar kamu bisa run manual via tombol di GitHub (opsional tapi sangat membantu)
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run actions/checkout@v3
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.12.7
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.7'
+
+      - name: Check Env
+        run: |
+          python --version
+          pip --version
+
+      - name: Install dependencies
+        run: |
+          pip install mlflow pandas scikit-learn virtualenv
+
+      - name: Run mlflow project
+        run: |
+          # Menjalankan project dari folder MLProject
+          mlflow run MLProject/ --env-manager=local
+
+      - name: Get latest MLflow run_id
+        id: get_run_id
+        run: |
+          # Mengambil run ID untuk mencari folder model
+          RUN_ID=$(basename "$(ls -td mlruns/0/* | head -1)")
+          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+
+      - name: Install Python dependencies
+        run: |
+          # Install library untuk Google Drive API
+          pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib pydrive2
+
+      - name: Upload to Google Drive
+        env:
+          GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
+        run: |
+          # Eksekusi script upload (pastikan file ini ada di repository-mu)
+          python scripts/upload_to_gdrive.py mlruns/0/${{ env.RUN_ID }}/artifacts/model
+
+      - name: Build Docker Model
+        run: |
+          mlflow models build-docker -m mlruns/0/${{ env.RUN_ID }}/artifacts/model -n ml-model-image
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }} 
+
+      - name: Tag Docker Image
+        run: |
+          docker tag ml-model-image ${{ secrets.DOCKER_USERNAME }}/heart-failure-model:latest
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/heart-failure-model:latest

@@ -1,0 +1,16 @@
+# Folder hasil training lokal
+mlruns/
+saved_model/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Folder Virtual Environment
+venv/
+env/
+.venv/
+
+# File sistem operasi
+.DS_Store
+Thumbs.db
