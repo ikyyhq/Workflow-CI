@@ -42,12 +42,20 @@ jobs:
         run: |
           pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib pydrive2
 
-      - name: Upload to Google Drive
-        env:
-          GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
-        run: |
-          # Arahkan script langsung ke folder 'saved_model' yang PASTI ada
-          python scripts/upload_to_gdrive.py MLProject/saved_model
+      # Gagal memcoba
+      # - name: Upload to Google Drive
+      #   env:
+      #     GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
+      #   run: |
+      #     # Arahkan script langsung ke folder 'saved_model' yang PASTI ada
+      #     python scripts/upload_to_gdrive.py MLProject/saved_model
+
+      # Menganti simpan artifak di github
+      - name: Upload to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: heart-failure-model-artifact
+          path: MLProject/saved_model/
 
       - name: Build Docker Model
         run: |
